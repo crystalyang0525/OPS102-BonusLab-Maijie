@@ -1,0 +1,72 @@
+#!/bin/bash
+
+echo "Hello, Welcome to Mastermind Game!"
+
+# Generate random 4-digit secret code
+generate_secret() {
+    SECRET=""
+    for ((i=0; i<4; i++)); do
+        digit=$((RANDOM % 10))
+        SECRET="$SECRET$digit"
+    done
+}
+generate_secret
+
+echo "4-digit secret number generated. Try to guess!"
+
+TURN=0
+MAXTURNS=10
+SCORE=100
+
+while [ $TURN -lt $MAXTURNS ]; do
+    TURN=$((TURN+1))
+    echo "Turn $TURN / $MAXTURNS"
+    read -p "Enter your guess (4 digits): " GUESS
+
+    if ! [[ "$GUESS" =~ ^[0-9]{4}$ ]]; then
+        echo "Invalid input. Please enter exactly 4 digits (0-9)."
+        continue
+    fi
+
+    if [ "$GUESS" == "$SECRET" ]; then
+        echo "You win in $TURN turns! Secret=$SECRET"
+        echo "Final Score: $SCORE"
+        exit 0
+    fi
+
+    # Calculate exact matches
+    EXACT=0
+    for ((i=0; i<4; i++)); do
+        if [ "${GUESS:$i:1}" == "${SECRET:$i:1}" ]; then
+            EXACT=$((EXACT+1))
+        fi
+    done
+
+    # Calculate near matches (frequency method)
+    NEAR=0
+    for ((d=0; d<=9; d++)); do
+        s_count=$(echo "$SECRET" | grep -o "$d" | wc -l)
+        g_count=$(echo "$GUESS" | grep -o "$d" | wc -l)
+        if [ $g_count -gt 0 ]; then
+            if [ $s_count -lt $g_count ]; then
+                NEAR=$((NEAR+s_count))
+            else
+                NEAR=$((NEAR+g_count))
+            fi
+        fi
+    done
+    NEAR=$((NEAR-EXACT))
+
+    echo "Result: exact=$EXACT near=$NEAR"
+
+    # Deduct 10 points for wrong guess
+    SCORE=$((SCORE-10))
+    if [ $SCORE -lt 0 ]; then
+        SCORE=0
+    fi
+    echo "Score: $SCORE"
+done
+
+echo "No turns left. The secret number was $SECRET"
+echo "Final Score: $SCORE"
+
